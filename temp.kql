@@ -1,0 +1,5 @@
+StorageBlobLogs
+| where OperationName == "DeleteBlob" or OperationName == "DeleteDirectory"
+| where Uri contains "<your-storage-account-name>"
+| order by TimeGenerated desc
+| project TimeGenerated, Uri, CallerIdentity, OperationName, StatusCode, AuthenticationType
