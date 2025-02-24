@@ -255,3 +255,72 @@ client.data_object.create(advisory_data, "CybersecurityAdvisory", vector=embeddi
 
 print("Cybersecurity Advisory Successfully Stored!")
 
+
+
+import weaviate
+import requests
+import json
+
+# Ollama API to generate embeddings
+OLLAMA_API_URL = "http://localhost:11434/api/generate"
+EMBEDDING_MODEL = "nomic-embed-text"  # Change as needed
+
+# Weaviate connection (Change URL if using cloud-hosted Weaviate)
+client = weaviate.Client(
+    url="http://localhost:8080"  # Update if using Weaviate Cloud
+)
+
+# Define schema if not already created
+class_name = "Document"
+schema = {
+    "classes": [
+        {
+            "class": class_name,
+            "vectorizer": "none",  # We use external vectors
+            "properties": [{"name": "text", "dataType": ["string"]}]
+        }
+    ]
+}
+
+# Create schema if it doesn't exist
+if not client.schema.exists(class_name):
+    client.schema.create(schema)
+
+def get_ollama_embedding(text):
+    """Fetches text embedding from Ollama"""
+    response = requests.post(
+        "http://localhost:11434/api/embeddings",
+        json={"model": EMBEDDING_MODEL, "prompt": text}
+    )
+    return response.json()["embedding"] if response.status_code == 200 else None
+
+# Sample documents
+documents = [
+    "Machine learning improves artificial intelligence.",
+    "Deep learning models excel in image processing.",
+    "Natural language processing powers chatbots.",
+]
+
+# Insert data into Weaviate
+for doc in documents:
+    vector = get_ollama_embedding(doc)
+    if vector:
+        client.data_object.create(
+            {"text": doc}, class_name=class_name, vector=vector
+        )
+
+print("Data inserted into Weaviate.")
+
+# Query Weaviate using an external Ollama embedding
+query_text = "AI models for understanding language"
+query_vector = get_ollama_embedding(query_text)
+
+if query_vector:
+    response = client.query.get(class_name, ["text"]).with_near_vector({"vector": query_vector}).with_limit(3).do()
+
+    # Display results
+    print("\nTop Results:")
+    for result in response["data"]["Get"][class_name]:
+        print(result["text"])
+
+
