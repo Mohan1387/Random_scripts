@@ -37,3 +37,6 @@ services:
 volumes:
   weaviate_data:
   ollama_data:
+
+
+# curl -X POST http://ollama:11434/api/generate -d '{"model": "nomic-embed-text", "prompt": "Hello"}' -H "Content-Type: application/json"
