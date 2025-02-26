@@ -324,3 +324,17 @@ if query_vector:
         print(result["text"])
 
 
+
+# Store the program's start time
+program_start_time = time.time()
+
+def log_time(func):
+    """Decorator to log the execution time of each function."""
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - program_start_time  # Time since program start
+        print(f"{func.__name__} executed in {end_time - start_time:.4f} seconds (Elapsed: {elapsed_time:.4f} seconds from start)")
+        return result
+    return wrapper
