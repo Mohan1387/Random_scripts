@@ -210,3 +210,39 @@ async def bulk_whois_lookup(domains: list[str]):
     logging.info(f"Bulk Whois Request | Domains: {len(domains)}")
     results = await process_domains_in_batches(domains)
     return {"results": results}
+
+
+from whoisapi import Client
+import logging
+import time
+import asyncio
+
+WHOIS_API_KEY = "your_api_key"
+whois_client = Client(api_key=WHOIS_API_KEY)
+
+async def fetch_whois_data(domain: str, timeout: int = 30):
+    """Fetch Whois data asynchronously with increased timeout."""
+    try:
+        start_time = time.time()  # Start timing request
+
+        # Run Whois lookup in a thread executor with a timeout
+        loop = asyncio.get_running_loop()
+        response = await asyncio.wait_for(
+            loop.run_in_executor(None, whois_client.rawdata, domain),
+            timeout=timeout
+        )
+
+        end_time = time.time()  # End timing request
+        elapsed_time = round(end_time - start_time, 3)
+
+        logging.info(f"Whois API Request | Domain: {domain} | Time Taken: {elapsed_time}s")
+
+        return response if response else {"error": f"No data for {domain}"}
+
+    except asyncio.TimeoutError:
+        logging.error(f"Whois API Timeout | Domain: {domain} | Timeout: {timeout}s")
+        return {"error": f"Timeout while fetching {domain}", "timeout": timeout}
+
+    except Exception as e:
+        logging.error(f"Whois API Failure | Domain: {domain} | Error: {str(e)}")
+        return {"error": f"Failed to fetch {domain}", "message": str(e)}
