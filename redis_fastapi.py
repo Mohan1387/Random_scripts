@@ -246,3 +246,14 @@ async def fetch_whois_data(domain: str, timeout: int = 30):
     except Exception as e:
         logging.error(f"Whois API Failure | Domain: {domain} | Error: {str(e)}")
         return {"error": f"Failed to fetch {domain}", "message": str(e)}
+
+
+
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logging.error(f"Unhandled error: {str(exc)}")
+    return {"error": "Internal Server Error"}
