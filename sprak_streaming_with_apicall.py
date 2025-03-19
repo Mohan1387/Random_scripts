@@ -195,3 +195,23 @@ query = (
 
 query.awaitTermination()
 
+#---------------------------
+
+def whois_api_lookup_batch_sync(domains):
+    """ Call WHOIS API synchronously with a batch of domains. """
+    if not isinstance(domains, list):
+        return ["Invalid Input"]
+
+    try:
+        payload = {"domains": domains.tolist()}  # Convert Pandas Series to list
+        with httpx.Client(timeout=30) as client:  # Synchronous client
+            response = client.post(API_URL, json=payload, headers=HEADERS)
+
+            if response.status_code == 200:
+                response_json = response.json()  # ✅ Fetch the entire response at once
+                return response_json.get("results", ["Error"] * len(domains))
+            else:
+                return ["Error"] * len(domains)
+    except Exception as e:
+        return [str(e)] * len(domains)
+
