@@ -61,3 +61,67 @@ df_with_api = df.withColumn("api_response", call_whois_api_udf(col("domain")))
 
 # Write to Console or Storage
 df_with_api.writeStream.format("console").start().awaitTermination()
+
+
+#---------------------------------------------------------------
+
+import requests
+import pandas as pd
+import json
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import pandas_udf
+from pyspark.sql.types import ArrayType, StringType
+
+# Initialize Spark Session
+spark = SparkSession.builder.appName("WHOISStreaming").getOrCreate()
+
+# WHOIS API Configuration
+API_URL = "https://your-whois-api.com/query"  # Replace with actual API
+HEADERS = {
+    "Content-Type": "application/json",
+    "API-Key": "your_api_key"  # Replace with actual API key
+}
+
+def whois_api_lookup_batch(domains):
+    """Call WHOIS API with a batch of domains and return responses."""
+    if not isinstance(domains, list):  # Ensure input is a list
+        return ["Invalid Input"]
+
+    try:
+        payload = json.dumps({"domains": domains.tolist()})  # Convert Pandas Series to list
+        response = requests.post(API_URL, data=payload, headers=HEADERS)
+        if response.status_code == 200:
+            return response.json().get("results", ["Error"] * len(domains))
+        else:
+            return ["Error"] * len(domains)  # Handle failures gracefully
+    except Exception as e:
+        return [str(e)] * len(domains)  # Handle exceptions
+
+# Define Pandas UDF
+@pandas_udf(ArrayType(StringType()))
+def whois_udf(domain_series: pd.Series) -> pd.Series:
+    return whois_api_lookup_batch(domain_series)
+
+# Read Streaming Data (Example: Assume Kafka Source)
+streaming_df = (
+    spark.readStream
+    .format("kafka")
+    .option("kafka.bootstrap.servers", "localhost:9092")  # Replace with actual Kafka details
+    .option("subscribe", "whois_topic")  # Replace with actual topic
+    .load()
+    .selectExpr("CAST(value AS STRING) as domain")  # Convert Kafka message to column
+)
+
+# Apply WHOIS API lookup on streaming data
+streaming_df = streaming_df.withColumn("whois_info", whois_udf(streaming_df["domain"]))
+
+# Write Output Stream (Example: Console Output)
+query = (
+    streaming_df.writeStream
+    .outputMode("append")  # Change as per use case
+    .format("console")  # Can use "parquet", "kafka", "delta", etc.
+    .start()
+)
+
+query.awaitTermination()
+
