@@ -124,4 +124,74 @@ query = (
 )
 
 query.awaitTermination()
+#---------------------------------------------------------------------------------
+
+import httpx
+import pandas as pd
+import json
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import pandas_udf
+from pyspark.sql.types import ArrayType, StringType
+
+# Initialize Spark Session
+spark = SparkSession.builder.appName("WHOISStreaming").getOrCreate()
+
+# WHOIS API Configuration
+API_URL = "https://your-whois-api.com/query"  # Replace with actual API
+HEADERS = {
+    "Content-Type": "application/json",
+    "API-Key": "your_api_key"  # Replace with actual API key
+}
+
+async def whois_api_lookup_batch(domains):
+    """ Call WHOIS API with a batch of domains and process response in a streaming manner. """
+    if not isinstance(domains, list):
+        return ["Invalid Input"]
+
+    try:
+        payload = {"domains": domains.tolist()}  # Convert Pandas Series to list
+        async with httpx.AsyncClient() as client:
+            response = await client.post(API_URL, json=payload, headers=HEADERS, timeout=30)
+
+            if response.status_code == 200:
+                # Use `aiter_text()` to process the response incrementally
+                results = []
+                async for chunk in response.aiter_text():
+                    parsed_chunk = json.loads(chunk)
+                    results.extend(parsed_chunk.get("results", ["Error"] * len(domains)))
+
+                return results  # Return streamed results
+            else:
+                return ["Error"] * len(domains)
+    except Exception as e:
+        return [str(e)] * len(domains)
+
+# Define Pandas UDF (Use Spark's `pandas_udf` with Async Call)
+@pandas_udf(ArrayType(StringType()))
+def whois_udf(domain_series: pd.Series) -> pd.Series:
+    import asyncio
+    return asyncio.run(whois_api_lookup_batch(domain_series))
+
+# Read Streaming Data (Example: Assume Kafka Source)
+streaming_df = (
+    spark.readStream
+    .format("kafka")
+    .option("kafka.bootstrap.servers", "localhost:9092")  # Replace with actual Kafka details
+    .option("subscribe", "whois_topic")  # Replace with actual topic
+    .load()
+    .selectExpr("CAST(value AS STRING) as domain")  # Convert Kafka message to column
+)
+
+# Apply WHOIS API lookup on streaming data
+streaming_df = streaming_df.withColumn("whois_info", whois_udf(streaming_df["domain"]))
+
+# Write Output Stream (Example: Console Output)
+query = (
+    streaming_df.writeStream
+    .outputMode("append")  # Change as per use case
+    .format("console")  # Can use "parquet", "kafka", "delta", etc.
+    .start()
+)
+
+query.awaitTermination()
 
