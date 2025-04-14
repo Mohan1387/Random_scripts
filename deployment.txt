@@ -1,0 +1,108 @@
+this app in the same server 
+
+
+ChatGPT said:
+Since you've built your FastAPI app in a Conda environment on an Azure VM, you can deploy it efficiently using Gunicorn and systemd to run it as a service. Below are the step-by-step instructions to deploy and keep it running.
+
+1. Activate Your Conda Environment
+SSH into your Azure VM and activate your Conda environment:
+
+bash
+Copy
+Edit
+conda activate your_env_name
+Replace your_env_name with your actual environment name.
+
+2. Install Dependencies (If Not Installed)
+Ensure you have all required packages:
+
+bash
+Copy
+Edit
+pip install fastapi uvicorn gunicorn
+3. Create a Gunicorn Service File
+Use nano or vim to create a systemd service:
+
+bash
+Copy
+Edit
+sudo nano /etc/systemd/system/fastapi.service
+Add the following content (replace your_env_name and /path/to/your/app accordingly):
+
+ini
+Copy
+Edit
+[Unit]
+Description=FastAPI Application
+After=network.target
+
+[Service]
+User=azureuser
+Group=azureuser
+WorkingDirectory=/home/azureuser/your_app_directory
+ExecStart=/bin/bash -c "source /home/azureuser/miniconda3/etc/profile.d/conda.sh && conda activate your_env_name && gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8181 --timeout 300 mainapi:app"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+4. Reload systemd & Enable the Service
+bash
+Copy
+Edit
+sudo systemctl daemon-reload
+sudo systemctl enable fastapi
+sudo systemctl start fastapi
+5. Verify the Service Status
+bash
+Copy
+Edit
+sudo systemctl status fastapi
+If everything is fine, you should see it running.
+
+6. Configure Firewall & NSG (If Not Done Yet)
+Allow Port 8181 in UFW (Firewall)
+bash
+Copy
+Edit
+sudo ufw allow 8181/tcp
+sudo ufw reload
+Allow Port 8181 in Azure Network Security Group (NSG)
+Go to Azure Portal → VM → Networking → Inbound Rules:
+
+Source: Any
+
+Destination: Your VM
+
+Protocol: TCP
+
+Port: 8181
+
+Action: Allow
+
+7. Access Your API
+Once deployed, access it via:
+
+arduino
+Copy
+Edit
+http://<your-public-ip>:8181/docs
+8. Logs & Troubleshooting
+Check logs:
+
+bash
+Copy
+Edit
+sudo journalctl -u fastapi --no-pager -n 50
+Restart service:
+
+bash
+Copy
+Edit
+sudo systemctl restart fastapi
+Stop service:
+
+bash
+Copy
+Edit
+sudo systemctl stop fastapi
+This setup ensures your FastAPI app starts automatically and runs persistently on your Azure VM. Let me know if you run into any issues!
