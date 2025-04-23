@@ -1,73 +1,93 @@
 
-
 """
-The main code for the feedforward networks assignment.
+The main code for the recurrent and convolutional networks assignment.
 See README.md for details.
 """
-from typing import Tuple, Dict
+from typing import Tuple, List, Dict
 
 import tensorflow
 
 
-def create_auto_mpg_deep_and_wide_networks(
-        n_inputs: int, n_outputs: int) -> Tuple[tensorflow.keras.models.Model,
-                                                tensorflow.keras.models.Model]:
-    """Creates one deep neural network and one wide neural network.
-    The networks should have the same (or very close to the same) number of
-    parameters and the same activation functions.
+def create_toy_rnn(input_shape: tuple, n_outputs: int) \
+        -> Tuple[tensorflow.keras.models.Model, Dict]:
+    """Creates a recurrent neural network for a toy problem.
 
-    The neural networks will be asked to predict the number of miles per gallon
-    that different cars get. They will be trained and tested on the Auto MPG
-    dataset from:
-    https://archive.ics.uci.edu/ml/datasets/auto+mpg
+    The network will take as input a sequence of number pairs, (x_{t}, y_{t}),
+    where t is the time step. It must learn to produce x_{t-3} - y{t} as the
+    output of time step t.
 
-    :param n_inputs: The number of inputs to the models.
-    :param n_outputs: The number of outputs from the models.
-    :return: A tuple of (deep neural network, wide neural network)
+    This method does not call Model.fit, but the dictionary it returns alongside
+    the model will be passed as extra arguments whenever Model.fit is called.
+    This can be used to, for example, set the batch size or use early stopping.
+
+    :param input_shape: The shape of the inputs to the model.
+    :param n_outputs: The number of outputs from the model.
+    :return: A tuple of (neural network, Model.fit keyword arguments)
     """
     ### YOUR CODE HERE ###
 
+def create_mnist_cnn(input_shape: tuple, n_outputs: int) \
+        -> Tuple[tensorflow.keras.models.Model, Dict]:
+    """Creates a convolutional neural network for digit classification.
 
-def create_activity_dropout_and_nodropout_networks(
-        n_inputs: int, n_outputs: int) -> Tuple[tensorflow.keras.models.Model,
-                                                tensorflow.keras.models.Model]:
-    """Creates one neural network with dropout applied after each layer, and
-    one neural network without dropout. The networks should be identical other
-    than the presence or absence of dropout.
+    The network will take as input a 28x28 grayscale image, and produce as
+    output one of the digits 0 through 9. The network will be trained and tested
+    on a fraction of the MNIST data: http://yann.lecun.com/exdb/mnist/
 
-    The neural networks will be asked to predict which one of six activity types
-    a smartphone user was performing. They will be trained and tested on the
-    UCI-HAR dataset from:
-    https://archive.ics.uci.edu/ml/datasets/human+activity+recognition+using+smartphones
+    This method does not call Model.fit, but the dictionary it returns alongside
+    the model will be passed as extra arguments whenever Model.fit is called.
+    This can be used to, for example, set the batch size or use early stopping.
 
-    :param n_inputs: The number of inputs to the models.
-    :param n_outputs: The number of outputs from the models.
-    :return: A tuple of (dropout neural network, no-dropout neural network)
+    :param input_shape: The shape of the inputs to the model.
+    :param n_outputs: The number of outputs from the model.
+    :return: A tuple of (neural network, Model.fit keyword arguments)
     """
     ### YOUR CODE HERE ###
 
+def create_youtube_comment_rnn(vocabulary: List[str], n_outputs: int) \
+        -> Tuple[tensorflow.keras.models.Model, Dict]:
+    """Creates a recurrent neural network for spam classification.
 
-def create_income_earlystopping_and_noearlystopping_networks(
-        n_inputs: int, n_outputs: int) -> Tuple[tensorflow.keras.models.Model,
-                                                Dict,
-                                                tensorflow.keras.models.Model,
-                                                Dict]:
-    """Creates one neural network that uses early stopping during training, and
-    one that does not. The networks should be identical other than the presence
-    or absence of early stopping.
+    This network will take as input a YouTube comment, and produce as output
+    either 1, for spam, or 0, for ham (non-spam). The network will be trained
+    and tested on data from:
+    https://archive.ics.uci.edu/ml/datasets/YouTube+Spam+Collection
 
-    The neural networks will be asked to predict whether a person makes more
-    than $50K per year. They will be trained and tested on the "adult" dataset
-    from:
-    https://archive.ics.uci.edu/ml/datasets/adult
+    Each comment is represented as a series of tokens, with each token
+    represented by a number, which is its index in the vocabulary. Note that
+    comments may be of variable length, so in the input matrix, comments with
+    fewer tokens than the matrix width will be right-padded with zeros.
 
-    :param n_inputs: The number of inputs to the models.
-    :param n_outputs: The number of outputs from the models.
-    :return: A tuple of (
-        early-stopping neural network,
-        early-stopping parameters that should be passed to Model.fit,
-        no-early-stopping neural network,
-        no-early-stopping parameters that should be passed to Model.fit
-    )
+    This method does not call Model.fit, but the dictionary it returns alongside
+    the model will be passed as extra arguments whenever Model.fit is called.
+    This can be used to, for example, set the batch size or use early stopping.
+
+    :param vocabulary: The vocabulary defining token indexes.
+    :param n_outputs: The number of outputs from the model.
+    :return: A tuple of (neural network, Model.fit keyword arguments)
+    """
+    ### YOUR CODE HERE ###
+
+def create_youtube_comment_cnn(vocabulary: List[str], n_outputs: int) \
+        -> Tuple[tensorflow.keras.models.Model, Dict]:
+    """Creates a convolutional neural network for spam classification.
+
+    This network will take as input a YouTube comment, and produce as output
+    either 1, for spam, or 0, for ham (non-spam). The network will be trained
+    and tested on data from:
+    https://archive.ics.uci.edu/ml/datasets/YouTube+Spam+Collection
+
+    Each comment is represented as a series of tokens, with each token
+    represented by a number, which is its index in the vocabulary. Note that
+    comments may be of variable length, so in the input matrix, comments with
+    fewer tokens than the matrix width will be right-padded with zeros.
+
+    This method does not call Model.fit, but the dictionary it returns alongside
+    the model will be passed as extra arguments whenever Model.fit is called.
+    This can be used to, for example, set the batch size or use early stopping.
+
+    :param vocabulary: The vocabulary defining token indexes.
+    :param n_outputs: The number of outputs from the model.
+    :return: A tuple of (neural network, Model.fit keyword arguments)
     """
     ### YOUR CODE HERE ###
