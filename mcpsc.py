@@ -176,3 +176,59 @@ update_requests = [
         "user_email": "bob@example.com"
     },
 ]
+
+#----------------------------------------------------------------------------------
+
+import asyncio
+from fastmcp import Client
+from fastmcp.client.transports import StreamableHttpTransport
+from openai import OpenAI
+import os
+
+# Initialize OpenAI client
+llm = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL")  # e.g. https://api.openai.com/v1
+)
+
+async def update_splunk_query_with_llm(use_case: str, description: str):
+    transport = StreamableHttpTransport(url="http://localhost:8000/mcp")
+
+    async with Client(transport=transport) as client:
+        # Get current query
+        res = await client.call_tool("get_use_case", {"name": use_case})
+        current_query = res.content["query"]
+
+        # Call OpenAI to generate updated query
+        prompt = f"""You are a Splunk SPL query expert.
+
+Current SPL query:
+{current_query}
+
+Instruction:
+{description}
+
+Return only the updated SPL query without explanation."""
+
+        response = llm.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+        updated_query = response.choices[0].message.content.strip()
+
+        print(f"🧠 Updated Query:\n{updated_query}")
+
+        # Update in Splunk
+        result = await client.call_tool("update_use_case_query", {
+            "name": use_case,
+            "query": updated_query
+        })
+
+        print(f"✅ Splunk updated: {result.content}")
+
+if __name__ == "__main__":
+    asyncio.run(update_splunk_query_with_llm(
+        use_case="Whois - New Domain Activity",
+        description="Add a filter to show only results from the last 7 days and internal IPs"
+    ))
